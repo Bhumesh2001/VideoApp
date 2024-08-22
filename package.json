@@ -34,6 +34,7 @@
     "googleapis": "^142.0.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.5.2",
-    "nodemailer": "^6.9.14"
+    "nodemailer": "^6.9.14",
+    "vercel": "^37.0.0"
   }
 }
