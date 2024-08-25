@@ -1,11 +1,12 @@
 require('dotenv').config();
+require('./utils/userUtils/subscription.Util');
 const express = require('express');
 const cors = require('cors');
 const cookiParser = require('cookie-parser');
 const fileUpload = require('express-fileupload');
 const cloudinary = require('cloudinary').v2;
 
-const app = express();
+const app = express(); 
 const PORT = process.env.PORT || 3000;
 const { connectToDB } = require('./db/connect');
 
@@ -18,8 +19,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(fileUpload({
-    useTempFiles : true,
-    tempFileDir : '/tmp/'
+    useTempFiles: true,
+    tempFileDir: '/tmp/'
 }));
 
 cloudinary.config({

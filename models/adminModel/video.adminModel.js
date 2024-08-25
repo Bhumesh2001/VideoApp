@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 
-// Define the schema
 const videoSchema = new mongoose.Schema({
     title: {
         type: String,
@@ -18,32 +17,53 @@ const videoSchema = new mongoose.Schema({
         required: [true, 'Category is required'],
     },
     thumbnail: {
-        type: String,
-        required: true,
-        trim: true,
-        validate: {
-            validator: function(v) {
-                return /^https?:\/\/.+\.(jpg|jpeg|png|webp|gif)$/.test(v);
+        type: {
+            publicId: {
+                type: String,
+                unique: true,
+                required: [true, 'Public ID is required'],
             },
-            message: props => `${props.value} is not a valid URL for a thumbnail image!`
-        }
-    },
-    video_url: {
-        type: String,
+            url: {
+                type: String,
+                required: true,
+                trim: true,
+                validate: {
+                    validator: function (v) {
+                        return /^https?:\/\/.+\.(jpg|jpeg|png|webp|gif)$/.test(v);
+                    },
+                    message: props => `${props.value} is not a valid URL for a thumbnail image!`
+                }
+            }
+        },
         unique: true,
-        required: [true, 'Video URL is required'],
-        validate: {
-            validator: function (v) {
-                return /^(ftp|http|https):\/\/[^ "]+$/.test(v);
+        required: [true, "Thumbnail is required!"],
+    },
+    video: {
+        type: {
+            publicId: {
+                type: String,
+                unique: true,
+                required: [true, 'Public ID is required'],
             },
-            message: props => `${props.value} is not a valid URL!`
-        }
+            url: {
+                type: String,
+                unique: true,
+                required: [true, 'Video URL is required'],
+                validate: {
+                    validator: function (v) {
+                        return /^(ftp|http|https):\/\/[^ "]+$/.test(v);
+                    },
+                    message: props => `${props.value} is not a valid URL!`
+                }
+            }
+        },
+        unique: true,
+        required: [true, "Video is required!"],
     }
 }, { timestamps: true });
 
 videoSchema.index({ category: 1, title: 1 });
 
-// Create the model
 const Video = mongoose.model('Video', videoSchema);
 
 module.exports = Video;

@@ -10,22 +10,23 @@ const categorySchema = new mongoose.Schema({
     description: {
         type: String,
         trim: true,
+        default: '',
     },
     prices: {
         monthly: {
             type: Number,
             required: true,
-            min: 0,  // Price should be a positive number or zero (if free)
+            min: 0,
         },
         quarterly: {
             type: Number,
             required: true,
-            min: 0,  // Price should be a positive number or zero (if free)
+            min: 0,
         },
         yearly: {
             type: Number,
             required: true,
-            min: 0,  // Price should be a positive number or zero (if free)
+            min: 0,
         }
     },
     createdAt: {
@@ -43,7 +44,8 @@ const categorySchema = new mongoose.Schema({
     },
 });
 
-// Middleware to update the updatedAt field on each save
+categorySchema.index({ name: 1 });
+
 categorySchema.pre('save', function (next) {
     this.updatedAt = Date.now();
     next();

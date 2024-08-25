@@ -34,7 +34,10 @@
     "googleapis": "^142.0.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.5.2",
+    "node-cron": "^3.0.3",
     "nodemailer": "^6.9.14",
+    "razorpay": "^2.9.4",
+    "streamifier": "^0.1.1",
     "vercel": "^37.0.0"
   }
 }

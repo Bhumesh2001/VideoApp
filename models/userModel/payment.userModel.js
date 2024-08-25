@@ -9,7 +9,6 @@ const userPaymentSchema = new mongoose.Schema({
     category: {
         type: String,
         required: true,
-        unique: true
     },
     paymentDate: {
         type: Date,
@@ -32,20 +31,26 @@ const userPaymentSchema = new mongoose.Schema({
     },
     expiryDate: {
         type: Date,
-        required: function () { return this.subscriptionType === 'subscription'; },
-        default: function () {
-            if (this.plan === 'monthly') {
-                return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from paymentDate
-            } else if (this.plan === 'quarterly') {
-                return new Date(Date.now() + 90 * 24 * 60 * 60 * 1000); // 90 days from paymentDate
-            } else if (this.plan === 'yearly') {
-                return new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 365 days from paymentDate
-            }
-        }
+        required: function () { return this.subscriptionType === 'subscription'; }
     },
 });
 
-userPaymentSchema.index({ userId: 1, category: 1 });
+// Middleware to calculate expiryDate before saving
+userPaymentSchema.pre('save', function (next) {
+    if (this.subscriptionType === 'subscription' && !this.expiryDate) {
+        let paymentDate = this.paymentDate || new Date();
+        if (this.plan === 'monthly') {
+            this.expiryDate = new Date(paymentDate.setMonth(paymentDate.getMonth() + 1)); // 1 month from paymentDate
+        } else if (this.plan === 'quarterly') {
+            this.expiryDate = new Date(paymentDate.setMonth(paymentDate.getMonth() + 3)); // 3 months from paymentDate
+        } else if (this.plan === 'yearly') {
+            this.expiryDate = new Date(paymentDate.setFullYear(paymentDate.getFullYear() + 1)); // 1 year from paymentDate
+        }
+    }
+    next();
+});
+
+userPaymentSchema.index({ userId: 1, category: 1 }); // Compound index
 
 const userPaymentModel = mongoose.model('UserPayment', userPaymentSchema);
 

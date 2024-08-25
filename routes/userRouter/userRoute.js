@@ -5,23 +5,16 @@ const userRouter = express.Router();
 const userController = require('../../controllers/userController/userCtrl');
 const videoUserController = require('../../controllers/userController/video.userCtrl');
 const paymentUserController = require('../../controllers/userController/payment.userCtrl');
+const paymentGetwayController  = require('../../controllers/userController/pGetway.user.Ctrl');
 
 // middlewares
-const { isSubscriptionValid } = require('../../middlewares/userMiddleware/payment.userMidlwr');
-const { userAuthentication } = require('../../middlewares/userMiddleware/userMidlwr')
+const { userAuthentication } = require('../../middlewares/userMiddleware/userMidlwr');
 
-// ********************* login/signup routes *********************
+// ********************* login/signup routes **********************
 
-// register user 
 userRouter.post('/register', userController.registerUser);
-
-// verify user 
 userRouter.post('/verify-user', userController.verifyUser);
-
-// login user 
 userRouter.post('/login', userController.loginUser);
-
-// logout user 
 userRouter.post('/logout', userController.logoutUser);
 
 // login with google  
@@ -50,8 +43,26 @@ userRouter.get(
 userRouter.post(
     '/create-payment',
     userAuthentication,
-    isSubscriptionValid,
     paymentUserController.CreatePayment
 );
+
+// get all payments 
+userRouter.get('/get-all/payments', userAuthentication, paymentUserController.getAllPayments);
+
+// get single payment
+userRouter.get(
+    '/get-single/payment/:paymentId', 
+    userAuthentication, 
+    paymentUserController.getSinglePayment
+);
+
+// ---------------------- payment getway routes --------------------------
+
+// razorpay
+userRouter.post('/create-order', userAuthentication, paymentGetwayController.createOrder);
+userRouter.post('/verify-payment', userAuthentication, paymentGetwayController.verifyPayment);
+
+// stripe
+
 
 module.exports = userRouter;

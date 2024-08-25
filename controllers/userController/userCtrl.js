@@ -1,10 +1,9 @@
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const axios = require('axios');
+const crypto = require('crypto');
 
 const userModel = require('../../models/userModel/userModel');
-// const firebaseAdmin = require('../../config/adminConfig/firebaseAdmin');
-const Token = require('../../models/userModel/token.userModel');
 
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(
@@ -16,12 +15,12 @@ const client = new OAuth2Client(
 // --------------- Register User -----------------
 exports.registerUser = async (req, res) => {
     try {
-        const { username, email, password, mobileNumber } = req.body;
+        const { name, email, password, mobileNumber } = req.body;
 
-        if (!username || !email || !password || !mobileNumber) {
+        if (!name || !email || !password || !mobileNumber) {
             return res.status(400).json({
                 success: false,
-                message: 'username, email, password and mobileNumber are required',
+                message: 'name, email, password and mobileNumber are required',
             });
         };
         const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
@@ -34,16 +33,16 @@ exports.registerUser = async (req, res) => {
 
         const existingUser = await userModel.findOne({ email });
         if (existingUser) {
-            return res.status(400).json({ message: 'User already exists' });
+            return res.status(400).json({ success: false, message: 'User already exists' });
         };
-        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const verificationToken = crypto.randomBytes(20).toString('hex');
 
         const newUser = new userModel({
-            username,
+            name,
             email,
             password,
             mobileNumber,
-            verificationCode,
+            verificationToken,
         });
         await newUser.save();
 
@@ -58,7 +57,8 @@ exports.registerUser = async (req, res) => {
             from: process.env.EMAIL,
             to: newUser.email,
             subject: 'Account Verification',
-            text: `Your verification code is: ${verificationCode}`,
+            text: `Please verify your account by clicking the following link: \n
+            http://${req.headers.host}/user/verify-user?token=${verificationToken}`,
         };
 
         transporter.sendMail(mailOptions, (err, info) => {
@@ -66,7 +66,6 @@ exports.registerUser = async (req, res) => {
             console.log('Verification email sent: ' + info.response);
         });
 
-        console.log('User registered successfully, please verify your account');
         res.status(201).json({
             success: true,
             message: 'User registered successfully, please verify your account',
@@ -88,7 +87,7 @@ exports.registerUser = async (req, res) => {
                 success: false,
                 message: `Duplicate field value entered for ${field}: ${error.keyValue[field]}. Please use another value!`,
             });
-        };  
+        };
         res.status(500).json({
             success: false,
             message: 'Server Error',
@@ -99,22 +98,22 @@ exports.registerUser = async (req, res) => {
 
 // -------------- Verify User -------------------
 exports.verifyUser = async (req, res) => {
-    const { email, code } = req.body || req.query;
+    const { token } = req.query;
     try {
-        if (!email | !code) {
+        if (!token) {
             return res.status(400).json({
                 success: false,
-                message: 'email and code are required',
+                message: 'token are required',
             });
         };
-        const user = await userModel.findOne({ email });
+        const user = await userModel.findOne({ verificationToken: token });
         if (!user) {
             return res.status(400).json({ message: 'User not found' });
         };
 
-        if (user.verificationCode === code) {
+        if (user.verificationToken === token) {
             user.isVerified = true;
-            user.verificationCode = undefined; // Clear the code
+            user.verificationToken = undefined; // Clear the token
             await user.save();
             return res.status(200).json({
                 success: true,
@@ -123,7 +122,7 @@ exports.verifyUser = async (req, res) => {
         };
         res.status(400).json({
             success: false,
-            message: 'Invalid verification code',
+            message: 'Invalid verification link',
         });
     } catch (error) {
         console.log(error);
@@ -156,11 +155,15 @@ exports.loginUser = async (req, res) => {
         if (!user.isVerified) {
             return res.status(400).json({
                 success: false,
-                message: 'Please verify your email before logging in'
+                message: 'Please verify your Account before logging in'
             });
         };
-        const token = jwt.sign({ email: user.email }, process.env.USER_SECRET_KEY, { expiresIn: '6h' });
-        
+        const token = jwt.sign(
+            { email: user.email, role: user.role }, 
+            process.env.USER_SECRET_KEY, 
+            { expiresIn: '6h' }
+        );
+
         res.cookie('userToken', token, {
             httpOnly: true, // Prevents JavaScript access
             secure: process.env.NODE_ENV === 'production', // Only send over HTTPS in production
@@ -183,16 +186,15 @@ exports.loginUser = async (req, res) => {
 // ------------- Logout User -----------------
 exports.logoutUser = async (req, res) => {
     try {
-        // Remove all tokens for the user
-        await Token.deleteMany({ userId: req.user.userId });
+        res.clearCookie('userToken');
         res.status(200).json({
             success: true,
-            message: 'Logged out from all devices.'
+            message: 'Logged out successfully...',
         });
     } catch (error) {
         res.status(500).json({
             success: false,
-            error: 'Failed to log out.' 
+            error: 'Failed to log out.'
         });
     };
 };
@@ -239,7 +241,7 @@ exports.getGoogleProfile = async (req, res) => {
         const email = payload['email'];
         const name = payload['name'];
 
-        const token = jwt.sign({ email }, process.env.USER_SECRET_KEY, { expiresIn: '6h' });
+        const token = jwt.sign({ email, role: 'user' }, process.env.USER_SECRET_KEY, { expiresIn: '6h' });
 
         res.cookie('userToken', token, {
             httpOnly: true, // Prevents JavaScript access
@@ -248,8 +250,8 @@ exports.getGoogleProfile = async (req, res) => {
         });
 
         res.status(200).json({
-            success: true, 
-            message: 'User logged in successful...', 
+            success: true,
+            message: 'User logged in successful...',
         });
     } catch (error) {
         console.error('Error during authentication:', error);
@@ -300,7 +302,7 @@ exports.getFacebookProfile = async (req, res) => {
             },
         });
         const { email } = userResponse.data;
-        const token = jwt.sign({ email }, process.env.USER_SECRET_KEY, { expiresIn: '6h' });
+        const token = jwt.sign({ email, role: 'user' }, process.env.USER_SECRET_KEY, { expiresIn: '6h' });
 
         res.cookie('userToken', token, {
             httpOnly: true, // Prevents JavaScript access
