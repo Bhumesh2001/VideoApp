@@ -5,7 +5,7 @@ const userPaymentModel = require('../../models/userModel/payment.userModel');
 const checkAndUpdateExpiredSubscriptions = async () => {
     try {
         const currentDate = new Date();
-        
+
         // Find all subscriptions that are expired
         const expiredSubscriptions = await userPaymentModel.find({
             subscriptionType: 'subscription',
@@ -33,5 +33,5 @@ const checkAndUpdateExpiredSubscriptions = async () => {
 
 // running a task every minute
 cron.schedule('* * * * *', checkAndUpdateExpiredSubscriptions, {
-    timezone: "UTC"  // Set the timezone as required
+    timezone: "UTC"
 });

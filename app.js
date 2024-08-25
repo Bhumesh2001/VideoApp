@@ -32,7 +32,7 @@ cloudinary.config({
 connectToDB();
 
 app.get('/', (req, res) => {
-    res.send('Service is live');
+    res.send('<strong>Service is live</strong>');
 });
 
 app.use('/admin', adminRouter);

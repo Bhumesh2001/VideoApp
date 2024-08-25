@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const axios = require('axios');
-const Redis = require('ioredis');
 
 const userModel = require('../../models/userModel/userModel');
 const { generateCode } = require('../../utils/userUtils/resendOtp');
@@ -13,10 +12,7 @@ const client = new OAuth2Client(
     process.env.CALLBACK_URL
 );
 
-const redis = new Redis({
-    host: process.env.REDIS_HOST,  
-    port: 6379,
-});
+const temporaryStorage = new Map();
 
 // --------------- Register User -----------------
 exports.registerUser = async (req, res) => {
@@ -43,7 +39,6 @@ exports.registerUser = async (req, res) => {
         };
 
         const Code = generateCode();
-        const codeExpiry = 60 * 60;
         const userData = {
             name,
             email,
@@ -51,11 +46,7 @@ exports.registerUser = async (req, res) => {
             mobileNumber,
             Code,
         };
-        await redis.set(
-            `verify:${email}`,
-            JSON.stringify({ ...userData, Code }),
-            'EX', codeExpiry
-        );
+        temporaryStorage.set(email, userData);
 
         const transporter = nodemailer.createTransport({
             service: 'gmail',
@@ -80,8 +71,18 @@ exports.registerUser = async (req, res) => {
             success: true,
             message: 'Please verify your email',
         });
+
+        let expireTime = 5 * 60 * 1000;
+        setTimeout(() => {
+            if(temporaryStorage.has(email)){
+                temporaryStorage.delete(email);
+                console.log(`Data for user "${email}" has expired and been removed.`);
+            };
+        }, expireTime);
+
     } catch (error) {
         console.log(error);
+
         if (error.name === 'ValidationError') {
             const validationErrors = Object.values(error.errors).map(err => err.message);
             return res.status(400).json({
@@ -90,13 +91,16 @@ exports.registerUser = async (req, res) => {
                 errors: validationErrors,
             });
         };
+
         if (error.code === 11000) {
             const field = Object.keys(error.keyValue);
             return res.status(409).json({
                 success: false,
-                message: `Duplicate field value entered for ${field}: ${error.keyValue[field]}. Please use another value!`,
+                message: `Duplicate field value entered for ${field}: ${error.keyValue[field]}. 
+                Please use another value!`,
             });
         };
+
         res.status(500).json({
             success: false,
             message: 'Server Error',
@@ -115,37 +119,41 @@ exports.verifyUser = async (req, res) => {
                 message: 'email and code are required',
             });
         };
-        const userDataString = await redis.get(`verify:${email}`);
 
-        if (!userDataString) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Invalid or expired verification code.' 
+        let user_data;
+        if (temporaryStorage.has(email)) {
+            user_data = temporaryStorage.get(email);
+        };
+
+        if (!user_data) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid or expired verification code.'
             });
         };
-        const { Code, ...userData } = JSON.parse(userDataString);
-        console.log(parseInt(code) === Code);
+        const { Code, ...userData } = user_data;
 
         if (parseInt(code) !== Code) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Incorrect verification code.' 
+            return res.status(400).json({
+                success: false,
+                message: 'Incorrect verification code.'
             });
         };
         const user = new userModel({
             name: userData.name,
             email: userData.email,
-            password: userData.password, 
+            password: userData.password,
             mobileNumber: userData.mobileNumber,
         });
+
         user.isVerified = true;
         await user.save();
 
-        await redis.del(`verify:${email}`);
+        temporaryStorage.delete(email);
 
-        res.status(200).json({ 
-            success: true, 
-            message: 'Email verified successfully. You can now log in.' 
+        res.status(200).json({
+            success: true,
+            message: 'Email verified successfully. You can now log in.'
         });
     } catch (error) {
         console.log(error);

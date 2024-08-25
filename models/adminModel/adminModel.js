@@ -39,12 +39,10 @@ const adminSchema = new mongoose.Schema({
 
 adminSchema.pre('save', async function (next) {
     try {
-        // Hash the password only if it's new or has been modified
         if (this.isModified('password') || this.isNew) {
             const salt = await bcrypt.genSalt(10);
             this.password = await bcrypt.hash(this.password, salt);
         }
-        // Update the updatedAt field to the current date
         this.updatedAt = Date.now();
         next();
     } catch (error) {
