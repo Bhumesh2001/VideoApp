@@ -58,7 +58,7 @@ exports.registerUser = async (req, res) => {
             to: newUser.email,
             subject: 'Account Verification',
             text: `Please verify your account by clicking the following link: \n
-            http://${req.headers.host}/user/verify-user?token=${verificationToken}`,
+            https://${process.env.HOST}/user/verify-user?token=${verificationToken}`,
         };
 
         transporter.sendMail(mailOptions, (err, info) => {
