@@ -1,7 +1,6 @@
 const cloudinary = require('cloudinary').v2;
 const fs = require('fs');
 const streamifier = require('streamifier');
-const { google } = require('googleapis');
 const Video = require('../../models/adminModel/video.adminModel');
 
 // ------------- upload video -----------------
@@ -24,64 +23,6 @@ exports.uploadDummyVideo = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "error occured while inserting the video"
-        });
-    };
-};
-
-exports.uploadVideoToYoutube = async (req, res) => {
-    const { title, description, category, thumbnail, video_url } = req.body;
-    try {
-        if (!req.files || Object.keys(req.files).length === 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'No files were uploaded.',
-            });
-        };
-        console.log(req.files);
-
-        const auth = new google.auth.GoogleAuth({
-            keyFile: './config/adminConfig/oauth2.json',
-            scopes: ['https://www.googleapis.com/auth/youtube.upload'],
-        });
-        const Auth = await auth.getClient();
-
-        const youtube = google.youtube({ version: 'v3', auth: Auth });
-        const fileSize = req.files.size;
-        const videoFile = req.files.video;
-
-        const response = await youtube.videos.insert({
-            part: 'snippet,status',
-            notifySubscribers: false,
-            requestBody: {
-                snippet: {
-                    title: title || 'Untitled Video',
-                    description: description || '',
-                },
-                status: {
-                    privacyStatus: 'unlisted',
-                },
-            },
-            media: {
-                body: fs.createReadStream(videoFile.tempFilePath),
-            },
-        }, {
-            onUploadProgress: (evt) => {
-                const progress = (evt.bytesRead / fileSize) * 100;
-                console.log(`${Math.round(progress)}% complete`);
-            },
-        });
-        console.log('Video uploaded successfully:', response.data);
-        res.status(201).json({
-            success: true,
-            message: 'Video uploaded successfully...',
-            videoUrl: `https://www.youtube.com/watch?v=${response.data.id}`
-        });
-
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            success: false,
-            message: 'error occured while uploading the video',
         });
     };
 };
