@@ -72,7 +72,7 @@ exports.registerUser = async (req, res) => {
             message: 'Please verify your email',
         });
 
-        let expireTime = 5 * 60 * 1000;
+        let expireTime = 30 * 60 * 1000;
         setTimeout(() => {
             if(temporaryStorage.has(email)){
                 temporaryStorage.delete(email);
