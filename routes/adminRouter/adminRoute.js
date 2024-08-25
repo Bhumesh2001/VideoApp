@@ -6,7 +6,6 @@ const adminController = require('../../controllers/adminController/adminCtrl');
 const categoryController = require('../../controllers/adminController/category.adminCtrl');
 const videoController = require('../../controllers/adminController/video.adminCtrl');
 
-
 // admin middleware
 const { adminAuth, loginRateLimiter } = require('../../middlewares/adminMiddleware/auth.adminMdlwr');
 

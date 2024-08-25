@@ -5,6 +5,19 @@ const Video = require('../../models/adminModel/video.adminModel');
 
 // ------------- upload video -----------------
 
+const uploadStream = (fileBuffer, options) => {
+    return new Promise((resolve, reject) => {
+        let stream = cloudinary.uploader.upload_stream(options, (error, result) => {
+            if (result) {
+                resolve(result);
+            } else {
+                reject(error);
+            }
+        });
+        streamifier.createReadStream(fileBuffer).pipe(stream);
+    });
+};
+
 exports.uploadDummyVideo = async (req, res) => {
     try {
         if (req.body.length == 0) {
@@ -172,15 +185,3 @@ exports.getAllvideosByCategory = async (req, res) => {
     };
 };
 
-const uploadStream = (fileBuffer, options) => {
-    return new Promise((resolve, reject) => {
-        let stream = cloudinary.uploader.upload_stream(options, (error, result) => {
-            if (result) {
-                resolve(result);
-            } else {
-                reject(error);
-            }
-        });
-        streamifier.createReadStream(fileBuffer).pipe(stream);
-    });
-};
