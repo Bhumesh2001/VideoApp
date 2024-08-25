@@ -1,9 +1,10 @@
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const axios = require('axios');
-const crypto = require('crypto');
+const Redis = require('ioredis');
 
 const userModel = require('../../models/userModel/userModel');
+const { generateCode } = require('../../utils/userUtils/resendOtp');
 
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(
@@ -11,6 +12,11 @@ const client = new OAuth2Client(
     process.env.ClIENT_SECRET,
     process.env.CALLBACK_URL
 );
+
+const redis = new Redis({
+    host: process.env.REDIS_HOST,  
+    port: 6379,
+});
 
 // --------------- Register User -----------------
 exports.registerUser = async (req, res) => {
@@ -35,16 +41,21 @@ exports.registerUser = async (req, res) => {
         if (existingUser) {
             return res.status(400).json({ success: false, message: 'User already exists' });
         };
-        const verificationToken = crypto.randomBytes(20).toString('hex');
 
-        const newUser = new userModel({
+        const Code = generateCode();
+        const codeExpiry = 60 * 60;
+        const userData = {
             name,
             email,
             password,
             mobileNumber,
-            verificationToken,
-        });
-        await newUser.save();
+            Code,
+        };
+        await redis.set(
+            `verify:${email}`,
+            JSON.stringify({ ...userData, Code }),
+            'EX', codeExpiry
+        );
 
         const transporter = nodemailer.createTransport({
             service: 'gmail',
@@ -55,10 +66,9 @@ exports.registerUser = async (req, res) => {
         });
         const mailOptions = {
             from: process.env.EMAIL,
-            to: newUser.email,
+            to: email,
             subject: 'Account Verification',
-            text: `Please verify your account by clicking the following link: \n
-            https://${process.env.HOST}/user/verify-user?token=${verificationToken}`,
+            text: `Your verification code is: ${Code}`,
         };
 
         transporter.sendMail(mailOptions, (err, info) => {
@@ -68,8 +78,7 @@ exports.registerUser = async (req, res) => {
 
         res.status(201).json({
             success: true,
-            message: 'User registered successfully, please verify your account',
-            newUser,
+            message: 'Please verify your email',
         });
     } catch (error) {
         console.log(error);
@@ -98,37 +107,68 @@ exports.registerUser = async (req, res) => {
 
 // -------------- Verify User -------------------
 exports.verifyUser = async (req, res) => {
-    const { token } = req.query;
+    const { email, code } = req.body || req.query;
     try {
-        if (!token) {
+        if (!email || !code) {
             return res.status(400).json({
                 success: false,
-                message: 'token are required',
+                message: 'email and code are required',
             });
         };
-        const user = await userModel.findOne({ verificationToken: token });
-        if (!user) {
-            return res.status(400).json({ message: 'User not found' });
-        };
+        const userDataString = await redis.get(`verify:${email}`);
 
-        if (user.verificationToken === token) {
-            user.isVerified = true;
-            user.verificationToken = undefined; // Clear the token
-            await user.save();
-            return res.status(200).json({
-                success: true,
-                message: 'Account verified successfully',
+        if (!userDataString) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid or expired verification code.' 
             });
         };
-        res.status(400).json({
-            success: false,
-            message: 'Invalid verification link',
+        const { Code, ...userData } = JSON.parse(userDataString);
+        console.log(parseInt(code) === Code);
+
+        if (parseInt(code) !== Code) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Incorrect verification code.' 
+            });
+        };
+        const user = new userModel({
+            name: userData.name,
+            email: userData.email,
+            password: userData.password, 
+            mobileNumber: userData.mobileNumber,
+        });
+        user.isVerified = true;
+        await user.save();
+
+        await redis.del(`verify:${email}`);
+
+        res.status(200).json({ 
+            success: true, 
+            message: 'Email verified successfully. You can now log in.' 
         });
     } catch (error) {
         console.log(error);
         res.status(500).json({
             success: false,
             message: 'error occured during verify the user',
+        });
+    };
+};
+
+exports.resendCodeOrOtp = (req, res) => {
+    try {
+        const CodeOrOtp = generateCode();
+        res.status(200).json({
+            success: true,
+            message: "Otp or Code gernerated successfully...",
+            code: CodeOrOtp,
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            success: false,
+            message: 'error occured during genrating the code',
         });
     };
 };
@@ -152,15 +192,10 @@ exports.loginUser = async (req, res) => {
                 message: 'Invalid email or password',
             });
         };
-        if (!user.isVerified) {
-            return res.status(400).json({
-                success: false,
-                message: 'Please verify your Account before logging in'
-            });
-        };
+
         const token = jwt.sign(
-            { email: user.email, role: user.role }, 
-            process.env.USER_SECRET_KEY, 
+            { email: user.email, role: user.role },
+            process.env.USER_SECRET_KEY,
             { expiresIn: '6h' }
         );
 

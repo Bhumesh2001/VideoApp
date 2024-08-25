@@ -25,6 +25,9 @@ userRouter.get('/auth/google/callback', userController.getGoogleProfile);
 userRouter.get('/auth/facebook', userController.redirectToFacebookProfile);
 userRouter.get('/auth/facebook/callback', userController.getFacebookProfile);
 
+// resend otp or code route
+userRouter.get('/resend-otp', userController.resendCodeOrOtp);
+
 // ******************** Category routes **********************
 
 // fetch all videos

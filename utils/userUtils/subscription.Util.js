@@ -24,7 +24,7 @@ const checkAndUpdateExpiredSubscriptions = async () => {
                 );
             };
         } else {
-            console.log('No expired subscriptions found.');
+            // console.log('No expired subscriptions found.');
         };
     } catch (error) {
         console.error('Error checking expired subscriptions:', error);
