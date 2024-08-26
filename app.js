@@ -33,7 +33,7 @@ connectToDB();
 
 app.get('/', (req, res) => {
     res.send('<strong>Service is live</strong>');
-}); 
+});
 
 app.use('/admin', adminRouter);
 app.use('/user', userRouter);

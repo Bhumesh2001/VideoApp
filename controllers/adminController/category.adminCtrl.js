@@ -43,10 +43,13 @@ exports.createCategory = async (req, res) => {
 exports.getAllCategories = async (req, res) => {
     try {
         const categories = await Category.find({});
+        const totalCategory = await Category.countDocuments();
+
         res.status(200).json({
             success: true,
             message: "All categories fetched successfully...",
             categories,
+            totalCategory,
         });
     } catch (error) {
         console.log(error);

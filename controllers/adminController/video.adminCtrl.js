@@ -135,6 +135,8 @@ exports.uploadVideoToCloudinary = async (req, res) => {
 exports.getAllvideos = async (req, res) => {
     try {
         const videos = await Video.find({}, { __v: 0 });
+        const totalVideos = await Video.countDocuments();
+
         if (videos.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -145,6 +147,7 @@ exports.getAllvideos = async (req, res) => {
             success: true,
             message: 'Video fetched successfully...',
             videos,
+            totalVideos,
         });
     } catch (error) {
         console.log(error);

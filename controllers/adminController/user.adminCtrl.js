@@ -58,7 +58,9 @@ exports.createUserByAdmin = async (req, res) => {
 
 exports.getAllUsersByAdmin = async (req, res) => {
     try {
-        const users = await userModel.find({});
+        let users = await userModel.find({})
+        const totalUsers = await userModel.countDocuments();
+        
         if(!users){
             return res.status(404).json({
                 success: false,
@@ -69,6 +71,7 @@ exports.getAllUsersByAdmin = async (req, res) => {
             success: true,
             message: "Users fetched successfully...",
             users,
+            totalUsers,
         });
     } catch (error) {
         console.log(error);
