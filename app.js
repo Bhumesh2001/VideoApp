@@ -18,8 +18,8 @@ const { adminAuth } = require('./middlewares/adminMiddleware/auth.adminMdlwr');
 app.use(cors({
     origin: [
         'https://web-digital-vle.netlify.app', 
+        'https://bhumesh2001.github.io',
         'https://videoapp-api.onrender.com',
-        'https://bhumesh2001.github.io/Digital_vle_login_page',
     ], 
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'], // Add this if you use Authorization headers
