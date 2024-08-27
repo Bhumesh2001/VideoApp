@@ -8,7 +8,7 @@ exports.adminAuth = async (req, res, next) => {
         //     success: false, 
         //     message: 'Unauthorized. Please log in.', 
         // });
-        res.redirect('https://bhumesh2001.github.io/Digital_vle_login_page/');
+        return res.redirect('https://bhumesh2001.github.io/Digital_vle_login_page/');
     };
     try {
         const decoded = jwt.verify(token, process.env.ADMIN_SECRET_KEY);       

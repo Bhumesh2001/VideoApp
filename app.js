@@ -15,7 +15,12 @@ const userRouter = require('./routes/userRouter/userRoute');
 
 const { adminAuth } = require('./middlewares/adminMiddleware/auth.adminMdlwr');
 
-app.use(cors());
+app.use(cors({
+    origin: 'https://videoapp-api.onrender.com',
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    credentials: true,
+}));
+
 app.use(cookiParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
