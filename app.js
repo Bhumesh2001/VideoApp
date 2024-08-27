@@ -16,7 +16,7 @@ const userRouter = require('./routes/userRouter/userRoute');
 const { adminAuth } = require('./middlewares/adminMiddleware/auth.adminMdlwr');
 
 app.use(cors({
-    origin: 'https://videoapp-api.onrender.com',
+    origin: 'https://web-digital-vle.netlify.app/',
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     credentials: true,
 }));
