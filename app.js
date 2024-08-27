@@ -13,6 +13,8 @@ const { connectToDB } = require('./db/connect');
 const adminRouter = require('./routes/adminRouter/adminRoute');
 const userRouter = require('./routes/userRouter/userRoute');
 
+const { adminAuth } = require('./middlewares/adminMiddleware/auth.adminMdlwr');
+
 app.use(cors());
 app.use(cookiParser());
 app.use(express.json());
@@ -31,8 +33,8 @@ cloudinary.config({
 
 connectToDB();
 
-app.get('/', (req, res) => {
-    res.send('<strong>Service is live</strong>');
+app.get('/', adminAuth, (req, res) => {
+    res.redirect('https://web-digital-vle.netlify.app');
 });
 
 app.use('/admin', adminRouter);

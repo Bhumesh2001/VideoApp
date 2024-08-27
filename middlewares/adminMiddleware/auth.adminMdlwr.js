@@ -4,10 +4,11 @@ const rateLimit = require('express-rate-limit');
 exports.adminAuth = async (req, res, next) => {
     const token = req.cookies.adminToken;    
     if (!token) {
-        return res.status(401).json({ 
-            success: false, 
-            message: 'Unauthorized. Please log in.', 
-        });
+        // return res.status(401).json({ 
+        //     success: false, 
+        //     message: 'Unauthorized. Please log in.', 
+        // });
+        res.redirect('https://bhumesh2001.github.io/Digital_vle_login_page/');
     };
     try {
         const decoded = jwt.verify(token, process.env.ADMIN_SECRET_KEY);       
