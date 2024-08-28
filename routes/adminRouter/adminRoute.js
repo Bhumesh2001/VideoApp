@@ -12,7 +12,7 @@ const { adminAuth, loginRateLimiter } = require('../../middlewares/adminMiddlewa
 
 // login/signup routes
 adminRouter.post('/create-admin', adminController.createAdmin);
-adminRouter.post('/login-admin', loginRateLimiter, adminController.loginAdmin);
+adminRouter.post('/login-admin', adminController.loginAdmin);
 
 // video routes
 adminRouter.post(
